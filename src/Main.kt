@@ -117,6 +117,10 @@ fun main() {
         val permutationIndex = permutationsNumbers[i]
         val missingEdgesForThisPair = missingEdgesMatrix[permutationIndex][subsetIndex]
         addedEdgesSet.addAll(missingEdgesForThisPair)
+        if (minimalSetOfAddedEdges != null && addedEdgesSet.size >= minimalSetOfAddedEdges!!.size) {
+          // No need to continue, we already have a worse solution
+          return@forEach
+        }
       }
       if (minimalSetOfAddedEdges == null || addedEdgesSet.size < minimalSetOfAddedEdges!!.size) {
         minimalSetOfAddedEdges = addedEdgesSet
