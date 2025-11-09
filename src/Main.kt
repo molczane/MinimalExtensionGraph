@@ -6,13 +6,13 @@ import kotlin.math.max
 /** Example usage */
 fun main() {
   val (bigGraph, smallGraph)
-          = readTwoAdjacencyMatrices("/Users/ernestmolczan/IdeaProjects/MinimalExtensionGraph/src/sample_graphs4.txt")
+          = readTwoAdjacencyMatrices("/Users/ernestmolczan/IdeaProjects/MinimalExtensionGraph/src/sample_graphs5.txt")
 
   val n = bigGraph.size
   val bigGraphVertices = (0 until n).toList()
   val k = smallGraph.size
   val smallGraphVertices = (0 until k).toList()
-  val m = 4
+  val m = 2
 
   // Generate all k-combinations of bigGraph vertices
   val combinations = combinationsK(bigGraphVertices, k)
@@ -105,31 +105,47 @@ fun main() {
     indexToMSizedCombination[indexToMSizedCombination.size] = it
   }
 
-  var minimalSetOfAddedEdges: Set<Pair<Int, Int>>? = null
+  var minimalListOfAddedEdges: List<Pair<Int, Int>>? = null
 
+  // Iterate over all m-sized combinations of subsets and all m-length sequences of permutations
   indexToMSizedCombination.forEach { mSizedCombinationOfSubsets ->
     productSequences(indexToPermutation.keys.toList(), m).forEach { mLengthSequence ->
       val subsetsNumbers = mSizedCombinationOfSubsets.value // columns in missingEdgesMatrix
       val permutationsNumbers = mLengthSequence // rows in missingEdgesMatrix
-      val addedEdgesSet = mutableSetOf<Pair<Int, Int>>()
+
+      val edgeFrequencyMap = mutableMapOf<Pair<Int, Int>, Int>()
       for (i in 0 until m) {
         val subsetIndex = subsetsNumbers[i]
         val permutationIndex = permutationsNumbers[i]
         val missingEdgesForThisPair = missingEdgesMatrix[permutationIndex][subsetIndex]
-        addedEdgesSet.addAll(missingEdgesForThisPair)
-        if (minimalSetOfAddedEdges != null && addedEdgesSet.size >= minimalSetOfAddedEdges!!.size) {
-          // No need to continue, we already have a worse solution
-          return@forEach
+        val edgeFrequencyForThisPair = mutableMapOf<Pair<Int, Int>, Int>()
+
+        // create frequency map for edges in this pair
+        missingEdgesForThisPair.forEach {
+          edgeFrequencyForThisPair[it] = edgeFrequencyForThisPair.getOrDefault(it, 0) + 1
+        }
+
+        // update global frequency map
+        // check for maximum frequency needed for each edge
+        edgeFrequencyForThisPair.forEach { (edge, freq) ->
+          edgeFrequencyMap[edge] = max(edgeFrequencyMap.getOrDefault(edge, 0), freq)
         }
       }
-      if (minimalSetOfAddedEdges == null || addedEdgesSet.size < minimalSetOfAddedEdges!!.size) {
-        minimalSetOfAddedEdges = addedEdgesSet
+      val addedEdgesList = mutableListOf<Pair<Int, Int>>()
+
+      // convert frequency map to list
+      edgeFrequencyMap.forEach { (edge, freq) ->
+        repeat(freq) { addedEdgesList.add(edge) }
+      }
+
+      if (minimalListOfAddedEdges == null || addedEdgesList.size < minimalListOfAddedEdges!!.size) {
+        minimalListOfAddedEdges = addedEdgesList
       }
     }
   }
 
-  println("Minimal set of added edges to get $m copies of smallGraph: ${minimalSetOfAddedEdges?.size}")
-  println("Added edges (bigGraph vertex indices): $minimalSetOfAddedEdges")
+  println("Minimal set of added edges to get $m copies of smallGraph: ${minimalListOfAddedEdges?.size}")
+  println("Added edges (bigGraph vertex indices): $minimalListOfAddedEdges")
 
   // We can use first phase to test correctness of second phase
 }
