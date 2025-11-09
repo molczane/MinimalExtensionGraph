@@ -3,6 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[polish]{babel}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{geometry}
 \usepackage{float}
 \usepackage{hyperref}
@@ -380,6 +381,239 @@ Niech $G = (V_G, E_G)$ i $P = (V_P, E_P)$ będą multigrafami, gdzie $|V_P| \leq
 
 \noindent\textbf{Uzasadnienie:} Warunek $V_{H_i} \neq V_{H_j}$ zapewnia, że kopie są rzeczywiście różne (nie są tym samym podgrafem), ale dopuszcza częściowe pokrywanie się zbiorów wierzchołków. Jest to słabsze wymaganie niż pełna rozłączność wierzchołkowa, ale wystarczające do sensownego policzenia $m$ różnych kopii grafu $P$. W implementacji zakładamy $V_G = V_{G'}$ (nie dodajemy wierzchołków), więc minimalizujemy tylko liczbę dodanych krawędzi. Definicja jest operacyjna i pozwala na konstrukcję algorytmów.
 
+\subsection{Algorytmy pomocnicze}
+\label{subsec:algorytmy_pomocnicze}
+
+Algorytm główny wykorzystuje trzy fundamentalne algorytmy kombinatoryczne: generowanie k-kombinacji, generowanie permutacji oraz generowanie produktu kartezjańskiego (m-krotek). W tej sekcji przedstawiamy szczegółowe opisy tych algorytmów wraz z dowodami poprawności i analizą złożoności.
+
+\subsubsection{Algorytm generowania k-kombinacji}
+\label{subsubsec:kombinacje}
+
+\textbf{Problem:} Dla danego zbioru $n$ elementów wygenerować wszystkie jego $k$-elementowe podzbiory (kombinacje).
+
+\textbf{Właściwości:}
+\begin{itemize}
+    \item Liczba k-kombinacji ze zbioru n-elementowego: $\binom{n}{k} = \frac{n!}{k!(n-k)!}$
+    \item Kombinacje są nieuporządkowane (zbiory, nie ciągi)
+    \item Kolejność generowania: leksykograficzna według indeksów
+\end{itemize}
+
+\begin{algorithm}[H]
+\caption{GenerateCombinations($items$, $k$)}
+\label{alg:combinations}
+\begin{algorithmic}[1]
+\Require $items$ - lista n elementów, $k$ - rozmiar kombinacji
+\Ensure Wszystkie k-kombinacje elementów z $items$
+\If{$k = 0$}
+    \State \textbf{yield} $[\,]$ \Comment{Pusta kombinacja}
+    \State \Return
+\EndIf
+\If{$k > n$}
+    \State \Return \Comment{Brak kombinacji}
+\EndIf
+\State $c \gets [0, 1, 2, \ldots, k-1]$ \Comment{Początkowa kombinacja indeksów}
+\While{\textbf{true}}
+    \State \textbf{yield} $[items[c[0]], items[c[1]], \ldots, items[c[k-1]]]$
+    \State $i \gets k - 1$
+    \While{$i \geq 0$ \textbf{and} $c[i] = n - k + i$}
+        \State $i \gets i - 1$
+    \EndWhile
+    \If{$i < 0$}
+        \State \textbf{break} \Comment{Wszystkie kombinacje wygenerowane}
+    \EndIf
+    \State $c[i] \gets c[i] + 1$
+    \For{$j \gets i + 1$ \textbf{to} $k - 1$}
+        \State $c[j] \gets c[j-1] + 1$
+    \EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Dowód poprawności:}
+
+\begin{proof}
+Algorytm reprezentuje kombinacje jako rosnące ciągi indeksów $c[0] < c[1] < \ldots < c[k-1]$, gdzie $0 \leq c[i] \leq n-1$.
+
+\textbf{Niezmiennik:} W każdej iteracji głównej pętli, tablica $c$ reprezentuje poprawną k-kombinację (ściśle rosnący ciąg indeksów).
+
+\textbf{Kompletność:} Algorytm generuje wszystkie kombinacje, ponieważ:
+\begin{enumerate}
+    \item Rozpoczyna od najmniejszej kombinacji $[0, 1, \ldots, k-1]$
+    \item W każdej iteracji znajduje najbardziej prawy indeks $i$, który można zwiększyć (linie 10-12)
+    \item Zwiększa $c[i]$ i ustawia następne indeksy jako kolejne liczby (linie 16-18)
+    \item To jest standardowy algorytm generowania kombinacji w porządku leksykograficznym
+    \item Kończy gdy nie można zwiększyć żadnego indeksu (największa kombinacja $[n-k, n-k+1, \ldots, n-1]$)
+\end{enumerate}
+
+\textbf{Brak duplikatów:} Każda kombinacja jest unikalna, ponieważ algorytm ściśle następuje porządek leksykograficzny i nigdy nie cofa się do wcześniej wygenerowanych kombinacji.
+
+\textbf{Poprawność struktury:} Niezmiennik $c[0] < c[1] < \ldots < c[k-1]$ jest zachowany w każdej iteracji przez konstrukcję algorytmu (linie 16-18).
+\end{proof}
+
+\textbf{Złożoność obliczeniowa:}
+\begin{itemize}
+    \item \textbf{Liczba iteracji:} $\binom{n}{k}$ (liczba kombinacji do wygenerowania)
+    \item \textbf{Koszt jednej iteracji:} $O(k)$ - wyprodukowanie kombinacji i znalezienie indeksu do zwiększenia
+    \item \textbf{Złożoność czasowa całkowita:} $O\left(\binom{n}{k} \cdot k\right)$
+    \item \textbf{Złożoność pamięciowa:} $O(k)$ - przechowywanie tablicy indeksów
+\end{itemize}
+
+\subsubsection{Algorytm generowania permutacji}
+\label{subsubsec:permutacje}
+
+\textbf{Problem:} Dla danego zbioru $n$ elementów wygenerować wszystkie jego permutacje (uporządkowania).
+
+\textbf{Właściwości:}
+\begin{itemize}
+    \item Liczba permutacji zbioru n-elementowego: $n!$
+    \item Wykorzystujemy algorytm Heapa - minimalizuje liczbę zamian elementów
+    \item Generowanie w miejscu (in-place)
+\end{itemize}
+
+\begin{algorithm}[H]
+\caption{GeneratePermutations($items$)}
+\label{alg:permutations}
+\begin{algorithmic}[1]
+\Require $items$ - lista n elementów
+\Ensure Wszystkie permutacje elementów z $items$
+\State $n \gets |items|$
+\If{$n \leq 1$}
+    \State \textbf{yield} $items$
+    \State \Return
+\EndIf
+\State $a \gets$ kopia $items$ \Comment{Praca na kopii}
+\State $c \gets [0, 0, \ldots, 0]$ \Comment{Liczniki dla algorytmu Heapa, długość n}
+\State \textbf{yield} kopia $a$ \Comment{Pierwsza permutacja}
+\State $i \gets 0$
+\While{$i < n$}
+    \If{$c[i] < i$}
+        \If{$i$ mod $2 = 0$}
+            \State swap($a[0]$, $a[i]$)
+        \Else
+            \State swap($a[c[i]]$, $a[i]$)
+        \EndIf
+        \State \textbf{yield} kopia $a$
+        \State $c[i] \gets c[i] + 1$
+        \State $i \gets 0$
+    \Else
+        \State $c[i] \gets 0$
+        \State $i \gets i + 1$
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Dowód poprawności:}
+
+\begin{proof}
+Algorytm Heapa wykorzystuje nierekurencyjną implementację z licznikami $c[i]$ reprezentującymi stan rekurencji.
+
+\textbf{Kompletność:} Algorytm generuje dokładnie $n!$ permutacji, ponieważ:
+\begin{enumerate}
+    \item Dla każdego $i$ wartość $c[i]$ przyjmuje wartości od $0$ do $i-1$, co daje $i$ możliwości
+    \item Całkowita liczba stanów: $1 \cdot 2 \cdot 3 \cdots n = n!$
+    \item Każdemu stanowi odpowiada unikalna permutacja
+\end{enumerate}
+
+\textbf{Brak duplikatów:} Każda kombinacja wartości liczników $c$ występuje dokładnie raz, co gwarantuje unikalność permutacji.
+
+\textbf{Minimalna liczba zamian:} Algorytm Heapa minimalizuje liczbę zamian - średnio około $1$ zamiany na permutację (znacznie lepiej niż $O(n)$ w algorytmach naiwnych).
+\end{proof}
+
+\textbf{Złożoność obliczeniowa:}
+\begin{itemize}
+    \item \textbf{Liczba iteracji:} $n!$ (liczba permutacji)
+    \item \textbf{Koszt jednej iteracji:} $O(1)$ - zamiany elementów i kopiowanie
+    \item \textbf{Koszt kopiowania permutacji:} $O(n)$ na permutację
+    \item \textbf{Złożoność czasowa całkowita:} $O(n! \cdot n)$
+    \item \textbf{Złożoność pamięciowa:} $O(n)$ - tablice $a$ i $c$
+\end{itemize}
+
+\subsubsection{Algorytm generowania produktu kartezjańskiego}
+\label{subsubsec:produkt_kartezjanski}
+
+\textbf{Problem:} Dla danego zbioru $items$ i liczby $m$ wygenerować wszystkie $m$-krotki (sekwencje długości $m$) złożone z elementów $items$ (z powtórzeniami).
+
+\textbf{Właściwości:}
+\begin{itemize}
+    \item Liczba $m$-krotek ze zbioru k-elementowego: $k^m$
+    \item Odpowiada produktowi kartezjańskiemu $items^m = items \times items \times \cdots \times items$
+    \item Generowanie w porządku leksykograficznym
+\end{itemize}
+
+\begin{algorithm}[H]
+\caption{ProductSequences($items$, $m$)}
+\label{alg:product}
+\begin{algorithmic}[1]
+\Require $items$ - lista k elementów, $m$ - długość sekwencji
+\Ensure Wszystkie m-krotki elementów z $items$
+\State $k \gets |items|$
+\If{$m = 0$}
+    \State \textbf{yield} $[\,]$
+    \State \Return
+\EndIf
+\If{$k = 0$}
+    \State \Return \Comment{Brak sekwencji}
+\EndIf
+\State $digits \gets [0, 0, \ldots, 0]$ \Comment{Tablica m cyfr w systemie bazy k}
+\While{\textbf{true}}
+    \State \textbf{yield} $[items[digits[0]], items[digits[1]], \ldots, items[digits[m-1]]]$
+    \State $i \gets 0$ \Comment{Inkrementacja licznika w systemie bazy k}
+    \While{$i < m$}
+        \If{$digits[i] + 1 < k$}
+            \State $digits[i] \gets digits[i] + 1$
+            \State \textbf{break}
+        \Else
+            \State $digits[i] \gets 0$
+            \State $i \gets i + 1$
+        \EndIf
+    \EndWhile
+    \If{$i = m$}
+        \State \textbf{break} \Comment{Przepełnienie - wszystkie sekwencje wygenerowane}
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Dowód poprawności:}
+
+\begin{proof}
+Algorytm traktuje sekwencje jako liczby w systemie pozycyjnym o podstawie $k$.
+
+\textbf{Reprezentacja:} Każda $m$-krotka odpowiada liczbie w systemie bazy $k$:
+\[
+\text{number} = digits[0] + digits[1] \cdot k + digits[2] \cdot k^2 + \cdots + digits[m-1] \cdot k^{m-1}
+\]
+gdzie $0 \leq digits[i] < k$.
+
+\textbf{Kompletność:} Algorytm generuje wszystkie liczby od $0$ do $k^m - 1$:
+\begin{enumerate}
+    \item Rozpoczyna od $[0, 0, \ldots, 0]$ (liczba 0)
+    \item W każdej iteracji inkrementuje liczbę o 1 (linie 13-20)
+    \item Kończy przy przepełnieniu (liczba $k^m$, co odpowiada stanowi po ostatniej sekwencji)
+    \item Każdej liczbie odpowiada unikalna $m$-krotka
+\end{enumerate}
+
+\textbf{Brak duplikatów:} Ponieważ algorytm ściśle liczy od 0 do $k^m - 1$, każda sekwencja jest wygenerowana dokładnie raz.
+
+\textbf{Poprawność inkrementacji:} Linie 13-20 implementują standardową inkrementację w systemie pozycyjnym z propagacją przeniesienia (carry).
+\end{proof}
+
+\textbf{Złożoność obliczeniowa:}
+\begin{itemize}
+    \item \textbf{Liczba iteracji:} $k^m$ (liczba $m$-krotek)
+    \item \textbf{Koszt jednej iteracji:} $O(m)$ w najgorszym przypadku (propagacja przeniesienia przez wszystkie pozycje)
+    \item \textbf{Średni koszt iteracji:} $O(1)$ (przeniesienie rzadko propaguje daleko)
+    \item \textbf{Złożoność czasowa całkowita:} $O(k^m \cdot m)$ (pesymistyczna), $O(k^m)$ (średnia)
+    \item \textbf{Złożoność pamięciowa:} $O(m)$ - tablica $digits$
+\end{itemize}
+
+\textbf{Porównanie z innymi metodami:}
+\begin{itemize}
+    \item \textbf{Rekurencja:} Intuicyjna, ale wymaga $O(m)$ stosu dla każdej sekwencji
+    \item \textbf{Podejście iteracyjne:} Używane tutaj - wydajniejsze pamięciowo, $O(m)$ bez nadmiarowych wywołań
+\end{itemize}
+
 \subsection{Algorytm dokładny}
 \label{subsec:algorytm_dokladny_m}
 
@@ -412,7 +646,7 @@ Dla grafu $G$ o $n$ wierzchołkach generujemy wszystkie możliwe $k$-kombinacje 
 \begin{itemize}
     \item \textit{Wejście:} $G = (V_G, E_G)$, $|V_G| = n$, $k = |V_P|$
     \item \textit{Wyjście:} Zbiór wszystkich $k$-kombinacji $\{C_1, C_2, \ldots, C_N\}$, gdzie $N = \binom{n}{k}$
-    \item \textit{Implementacja:} Funkcja \texttt{combinationsK()} generuje kombinacje iteracyjnie w porządku leksykograficznym
+    \item \textit{Implementacja:} Algorytm \ref{alg:combinations} (GenerateCombinations) - szczegóły w sekcji \ref{subsubsec:kombinacje}
     \item \textit{Złożoność:} $O\left(\binom{n}{k} \times k\right)$
 \end{itemize}
 
@@ -423,7 +657,7 @@ Dla grafu $P$ o $k$ wierzchołkach generujemy wszystkie możliwe permutacje. Ka�
 \begin{itemize}
     \item \textit{Wejście:} $P = (V_P, E_P)$, $|V_P| = k$
     \item \textit{Wyjście:} Zbiór wszystkich permutacji $\{\pi_1, \pi_2, \ldots, \pi_M\}$, gdzie $M = k!$
-    \item \textit{Implementacja:} Funkcja \texttt{permutations()} wykorzystuje algorytm Heapa
+    \item \textit{Implementacja:} Algorytm \ref{alg:permutations} (GeneratePermutations, algorytm Heapa) - szczegóły w sekcji \ref{subsubsec:permutacje}
     \item \textit{Złożoność:} $O(k! \times k)$
 \end{itemize}
 
@@ -467,7 +701,7 @@ Dla każdej $m$-kombinacji podzbiorów, generujemy wszystkie możliwe $m$-krotki
 
 \begin{itemize}
     \item \textit{Liczba $m$-krotek:} $(k!)^m$
-    \item \textit{Implementacja:} Funkcja \texttt{productSequences()} generuje produkt kartezjański
+    \item \textit{Implementacja:} Algorytm \ref{alg:product} (ProductSequences) - szczegóły w sekcji \ref{subsubsec:produkt_kartezjanski}
     \item \textit{Złożoność:} $O((k!)^m \times m)$
 \end{itemize}
 
