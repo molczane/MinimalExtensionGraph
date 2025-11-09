@@ -277,7 +277,7 @@ W kontekście tego algorytmu aproksymacyjnego nie rozważano formalnego dowodu p
 \subsection{Motywacja i sformułowanie problemu}
 \label{subsec:motywacja_m_kopii}
 
-W poprzednich sekcjach zajmowaliśmy się problemem weryfikacji istnienia pojedynczego podgrafu izomorficznego z danym wzorcem. W praktycznych zastosowaniach często pojawia się jednak bardziej ogólne zagadnienie: jak minimalnie rozszerzyć graf $G$, aby zawierał on $m$ rozłącznych kopii grafu wzorcowego $P$?
+W poprzednich sekcjach zajmowaliśmy się problemem weryfikacji istnienia pojedynczego podgrafu izomorficznego z danym wzorcem. W praktycznych zastosowaniach często pojawia się jednak bardziej ogólne zagadnienie: jak minimalnie rozszerzyć graf $G$, aby zawierał on $m$ różnych kopii grafu wzorcowego $P$?
 
 Problem ten ma istotne zastosowania w dziedzinach takich jak:
 \begin{itemize}
@@ -298,7 +298,7 @@ Problem ten ma istotne zastosowania w dziedzinach takich jak:
 
 \noindent\textit{Zadanie:}
 \begin{itemize}
-    \item Znaleźć minimalny zbiór krawędzi $E_{add}$ taki, że graf $G' = (V_G, E_G \cup E_{add})$ zawiera co najmniej $m$ rozłącznych wierzchołkowo podgrafów izomorficznych z $P$
+    \item Znaleźć minimalny zbiór krawędzi $E_{add}$ taki, że graf $G' = (V_G, E_G \cup E_{add})$ zawiera co najmniej $m$ podgrafów izomorficznych z $P$, przy czym każde dwa podgrafy różnią się przynajmniej jednym wierzchołkiem
 \end{itemize}
 
 \subsection{Definicje formalne}
@@ -373,12 +373,12 @@ Niech $G = (V_G, E_G)$ i $P = (V_P, E_P)$ będą multigrafami, gdzie $|V_P| \leq
 
 \begin{enumerate}
     \item $G'$ jest rozszerzeniem $G$ (tj. $V_G \subseteq V_{G'}$, $E_G \subseteq E_{G'}$)
-    \item $G'$ zawiera co najmniej $m$ podgrafów parami rozłącznych wierzchołkowo, z których każdy jest izomorficzny z $P$
+    \item $G'$ zawiera co najmniej $m$ podgrafów izomorficznych z $P$, przy czym każde dwa podgrafy różnią się przynajmniej jednym wierzchołkiem (tzn. dla dowolnych dwóch podgrafów $H_i$, $H_j$ zachodzi $V_{H_i} \neq V_{H_j}$)
     \item Koszt rozszerzenia $\gamma(G, G')$ jest minimalny w sensie porządku leksykograficznego wśród wszystkich rozszerzeń spełniających warunki 1 i 2
 \end{enumerate}
 \end{definition}
 
-\noindent\textbf{Uzasadnienie:} Wymóg rozłączności wierzchołkowej $m$ kopii zapewnia, że są to rzeczywiście odrębne podgrafy. W implementacji zakładamy $V_G = V_{G'}$ (nie dodajemy wierzchołków), więc minimalizujemy tylko liczbę dodanych krawędzi. Definicja jest operacyjna i pozwala na konstrukcję algorytmów.
+\noindent\textbf{Uzasadnienie:} Warunek $V_{H_i} \neq V_{H_j}$ zapewnia, że kopie są rzeczywiście różne (nie są tym samym podgrafem), ale dopuszcza częściowe pokrywanie się zbiorów wierzchołków. Jest to słabsze wymaganie niż pełna rozłączność wierzchołkowa, ale wystarczające do sensownego policzenia $m$ różnych kopii grafu $P$. W implementacji zakładamy $V_G = V_{G'}$ (nie dodajemy wierzchołków), więc minimalizujemy tylko liczbę dodanych krawędzi. Definicja jest operacyjna i pozwala na konstrukcję algorytmów.
 
 \subsection{Algorytm dokładny}
 \label{subsec:algorytm_dokladny_m}
@@ -452,7 +452,9 @@ Wynik zapisujemy w macierzy $\text{missingEdgesMatrix}[i][j]$ jako listę brakuj
 
 \noindent\textbf{Krok 4: Generowanie m-kombinacji osadzeń}
 
-Generujemy wszystkie możliwe sposoby wyboru $m$ różnych kombinacji wierzchołków spośród $N = \binom{n}{k}$ dostępnych kombinacji. Każda taka $m$-kombinacja reprezentuje wybór $m$ rozłącznych wierzchołkowo podzbiorów dla $m$ kopii grafu $P$.
+\noindent\textbf{Krok 4: Generowanie m-kombinacji osadzeń}
+
+Generujemy wszystkie możliwe sposoby wyboru $m$ różnych kombinacji wierzchołków spośród $N = \binom{n}{k}$ dostępnych kombinacji. Każda taka $m$-kombinacja reprezentuje wybór $m$ różnych podzbiorów dla $m$ kopii grafu $P$. Ponieważ są to kombinacje (a nie permutacje z powtórzeniami), każde dwa podzbiory w wybranej $m$-krotce są różne, co zapewnia, że odpowiadające im kopie różnią się przynajmniej jednym wierzchołkiem.
 
 \begin{itemize}
     \item \textit{Liczba $m$-kombinacji:} $\binom{\binom{n}{k}}{m}$
@@ -504,34 +506,22 @@ Algorytm został podzielony na dwie części dla lepszej czytelności: Fazę 1 (
 \begin{algorithmic}[1]
 \Require $G = (V_G, E_G)$ - multigraf "duży", $|V_G| = n$
 \Require $P = (V_P, E_P)$ - multigraf "mały", $|V_P| = k$
-\Ensure Macierz $missingEdgesMatrix$ z brakującymi krawędziami dla każdego osadzenia
-\State
-\State \textit{// Generowanie wszystkich k-kombinacji wierzchołków G}
+\Ensure Macierz $missingEdgesMatrix$ z brakującymi krawędziami
+\State \textit{// Generuj k-kombinacje wierzchołków G}
 \State $combinations \gets \text{GenerateCombinations}(V_G, k)$
 \State $indexToSubset \gets \text{IndexMap}(combinations)$
-\State
-\State \textit{// Generowanie wszystkich permutacji wierzchołków P}
+\State \textit{// Generuj permutacje wierzchołków P}
 \State $permutations \gets \text{GeneratePermutations}(V_P)$
 \State $indexToPermutation \gets \text{IndexMap}(permutations)$
-\State
-\State \textit{// Inicjalizacja macierzy brakujących krawędzi}
 \State $missingEdgesMatrix \gets \text{Array}[|indexToPermutation|][|indexToSubset|]$
-\State
-\State \textit{// Obliczanie brakujących krawędzi dla każdej pary (permutacja, kombinacja)}
 \For{$i \gets 0$ \textbf{to} $|indexToPermutation| - 1$}
     \For{$j \gets 0$ \textbf{to} $|indexToSubset| - 1$}
-        \State $\pi \gets indexToPermutation[i]$ \Comment{Permutacja P}
-        \State $C \gets indexToSubset[j]$ \Comment{Kombinacja wierzchołków G}
+        \State $\pi \gets indexToPermutation[i]$; $C \gets indexToSubset[j]$
         \State $missingEdgesMatrix[i][j] \gets [\,]$
-        \State
         \For{$u \gets 0$ \textbf{to} $k-1$}
             \For{$v \gets 0$ \textbf{to} $k-1$}
-                \State $u' \gets C[\pi[u]]$ \Comment{Mapowanie wierzchołka u}
-                \State $v' \gets C[\pi[v]]$ \Comment{Mapowanie wierzchołka v}
-                \State $e_P \gets A_P[\pi[u]][\pi[v]]$ \Comment{Krawędzie w P}
-                \State $e_G \gets A_G[u'][v']$ \Comment{Krawędzie w G}
-                \State $\Delta \gets \max(0, e_P - e_G)$ \Comment{Brakujące krawędzie}
-                \State
+                \State $u' \gets C[\pi[u]]$; $v' \gets C[\pi[v]]$
+                \State $\Delta \gets \max(0, A_P[\pi[u]][\pi[v]] - A_G[u'][v'])$
                 \For{$t \gets 0$ \textbf{to} $\Delta - 1$}
                     \State $missingEdgesMatrix[i][j].\text{append}((u', v'))$
                 \EndFor
@@ -539,7 +529,6 @@ Algorytm został podzielony na dwie części dla lepszej czytelności: Fazę 1 (
         \EndFor
     \EndFor
 \EndFor
-\State
 \State \Return $missingEdgesMatrix$, $indexToSubset$, $indexToPermutation$
 \end{algorithmic}
 \end{algorithm}
@@ -548,53 +537,34 @@ Algorytm został podzielony na dwie części dla lepszej czytelności: Fazę 1 (
 \caption{MinimalGraphExtension - Faza 2: Znajdowanie minimalnego rozszerzenia}
 \label{alg:minimal_extension_phase2}
 \begin{algorithmic}[1]
-\Require $missingEdgesMatrix$ - macierz z Fazy 1
-\Require $indexToSubset$ - mapowanie indeksów na kombinacje
-\Require $indexToPermutation$ - mapowanie indeksów na permutacje
-\Require $m$ - liczba wymaganych kopii P
+\Require $missingEdgesMatrix$, $indexToSubset$, $indexToPermutation$, $m$
 \Ensure Lista krawędzi do dodania do $G$
-\State
-\State \textit{// Generowanie m-kombinacji podzbiorów (dla m kopii)}
 \State $mCombinations \gets \text{GenerateCombinations}(indexToSubset.keys, m)$
-\State $minimalEdges \gets \text{null}$
-\State $minimalSize \gets \infty$
-\State
-\State \textit{// Przeszukiwanie wszystkich możliwych osadzeń m kopii}
+\State $minimalEdges \gets \text{null}$; $minimalSize \gets \infty$
 \For{\textbf{each} $\{j_1, \ldots, j_m\}$ \textbf{in} $mCombinations$}
     \For{\textbf{each} $(i_1, \ldots, i_m)$ \textbf{in} $\text{ProductSeq}(indexToPermutation.keys, m)$}
-        \State $edgeFreqMap \gets \{\}$ \Comment{Mapa: krawędź $\to$ maksymalna krotność}
-        \State
-        \State \textit{// Dla każdej z m kopii}
+        \State $edgeFreqMap \gets \{\}$
         \For{$t \gets 0$ \textbf{to} $m-1$}
             \State $missingEdges \gets missingEdgesMatrix[i_t][j_t]$
-            \State $localFreq \gets \{\}$ \Comment{Częstość krawędzi dla kopii t}
-            \State
+            \State $localFreq \gets \{\}$
             \For{\textbf{each} $e$ \textbf{in} $missingEdges$}
                 \State $localFreq[e] \gets localFreq[e] + 1$
             \EndFor
-            \State
-            \State \textit{// Aktualizacja globalnej mapy: bierzemy maksimum}
             \For{\textbf{each} $(e, freq)$ \textbf{in} $localFreq$}
                 \State $edgeFreqMap[e] \gets \max(edgeFreqMap[e], freq)$
             \EndFor
         \EndFor
-        \State
-        \State \textit{// Konwersja mapy częstości na listę krawędzi}
         \State $addedEdges \gets [\,]$
         \For{\textbf{each} $(e, freq)$ \textbf{in} $edgeFreqMap$}
             \For{$t \gets 0$ \textbf{to} $freq - 1$}
                 \State $addedEdges.\text{append}(e)$
             \EndFor
         \EndFor
-        \State
-        \State \textit{// Aktualizacja minimum}
         \If{$|addedEdges| < minimalSize$}
-            \State $minimalSize \gets |addedEdges|$
-            \State $minimalEdges \gets addedEdges$
+            \State $minimalSize \gets |addedEdges|$; $minimalEdges \gets addedEdges$
         \EndIf
     \EndFor
 \EndFor
-\State
 \State \Return $minimalEdges$
 \end{algorithmic}
 \end{algorithm}
@@ -604,7 +574,7 @@ Algorytm został podzielony na dwie części dla lepszej czytelności: Fazę 1 (
 
 \begin{theorem}[Poprawność algorytmu MinimalGraphExtension]
 \label{thm:poprawnosc}
-Algorytm MinimalGraphExtension zwraca minimalną listę krawędzi do dodania do $G$, aby zawierał $m$ rozłącznych wierzchołkowo kopii $P$.
+Algorytm MinimalGraphExtension zwraca minimalną listę krawędzi do dodania do $G$, aby zawierał $m$ różnych kopii $P$ (tzn. kopii różniących się przynajmniej jednym wierzchołkiem).
 \end{theorem}
 
 \begin{proof}
@@ -612,7 +582,7 @@ Dowód podzielimy na trzy części: kompletność, poprawność i minimalność.
 
 \textbf{Część 1: Kompletność (algorytm znajduje rozwiązanie, jeśli istnieje)}
 
-Załóżmy, że istnieje rozszerzenie $G'$ grafu $G$ zawierające $m$ rozłącznych wierzchołkowo kopii $P$, osiągnięte przez dodanie zbioru krawędzi $E_{add}$.
+Załóżmy, że istnieje rozszerzenie $G'$ grafu $G$ zawierające $m$ różnych kopii $P$ (tzn. kopii różniących się przynajmniej jednym wierzchołkiem), osiągnięte przez dodanie zbioru krawędzi $E_{add}$.
 
 \begin{enumerate}
     \item Dla każdej z $m$ kopii $P$ w $G'$ istnieje:
@@ -622,15 +592,15 @@ Załóżmy, że istnieje rozszerzenie $G'$ grafu $G$ zawierające $m$ rozłączn
         \item Takie że podgraf $G'$ indukowany przez $C_t$ z odpowiednim mapowaniem jest izomorficzny z $P$
     \end{itemize}
 
-    \item Kombinacje $C_t$ są rozłączne ($C_i \cap C_j = \emptyset$ dla $i \neq j$), ponieważ kopie są rozłączne wierzchołkowo
+    \item Kombinacje $C_t$ są różne ($C_i \neq C_j$ dla $i \neq j$), co zapewnia, że kopie różnią się przynajmniej jednym wierzchołkiem
 
-    \item Algorytm generuje wszystkie możliwe $m$-kombinacje $k$-podzbiorów (linia 30)
+    \item Algorytm generuje wszystkie możliwe $m$-kombinacje $k$-podzbiorów (linia 3 Fazy 2), co gwarantuje, że wybranych $m$ podzbiorów jest parami różnych
 
-    \item Dla każdej $m$-kombinacji, algorytm generuje wszystkie możliwe $m$-krotki permutacji (linia 31)
+    \item Dla każdej $m$-kombinacji, algorytm generuje wszystkie możliwe $m$-krotki permutacji (linia 4 Fazy 2)
 
     \item Zatem algorytm rozważy kombinację $\{C_1, \ldots, C_m\}$ i krotkę permutacji $(\pi_1, \ldots, \pi_m)$ odpowiadającą rzeczywistemu rozwiązaniu
 
-    \item Dla tej kombinacji i krotki permutacji, algorytm obliczy dokładnie te same krawędzie, które są w $E_{add}$ (linie 33-48)
+    \item Dla tej kombinacji i krotki permutacji, algorytm obliczy dokładnie te same krawędzie, które są w $E_{add}$ (linie 5-16 Fazy 2)
 \end{enumerate}
 
 \textbf{Część 2: Poprawność (dodane krawędzie są wystarczające)}
@@ -670,7 +640,7 @@ Dla dowolnej $m$-kombinacji podzbiorów i $m$-krotki permutacji rozważanej prze
     \item Nie istnieje sposób osadzenia $m$ kopii $P$ w $G$ wymagający mniej krawędzi, bo wszystkie sposoby zostały rozważone
 \end{enumerate}
 
-Zatem algorytm jest poprawny - zwraca minimalną liczbę krawędzi wystarczających do stworzenia $m$ rozłącznych wierzchołkowo kopii $P$ w $G$.
+Zatem algorytm jest poprawny - zwraca minimalną liczbę krawędzi wystarczających do stworzenia $m$ różnych kopii $P$ w $G$ (różniących się przynajmniej jednym wierzchołkiem).
 \end{proof}
 
 \subsection{Analiza złożoności obliczeniowej}
@@ -895,7 +865,7 @@ Dla $C_{55} = \{5, 6, 7\}$ i $\pi_0 = [0, 1, 2]$:
 
 \textbf{Krok 4-6:} Rozważamy 2-kombinację $\{C_0, C_{55}\} = \{\{0,1,2\}, \{5,6,7\}\}$
 
-Te kombinacje są rozłączne wierzchołkowo $\checkmark$
+Te kombinacje są różne (różnią się wszystkimi wierzchołkami) $\checkmark$
 
 Dla 2-krotki permutacji $(\pi_0, \pi_0)$:
 \begin{itemize}
@@ -1009,7 +979,7 @@ Osadzenie kopii 2: wierzchołki {5,6,7} (po ewentualnym dodaniu krawędzi)
 \textit{Ograniczenia:}
 \begin{itemize}
     \item Każda kopia musi mieć dokładnie jedno osadzenie: $\sum_i x_{ij} = 1$ dla każdego $j$
-    \item Osadzenia muszą być rozłączne wierzchołkowo
+    \item Osadzenia muszą być różne (odpowiadać różnym kombinacjom wierzchołków)
     \item Dla każdej krawędzi $e$: $y_e \geq \max_j \{\Delta_{ij}(e) \cdot x_{ij}\}$ gdzie $\Delta_{ij}(e)$ to krotność $e$ w brakujących krawędziach osadzenia $i$ dla kopii $j$
 \end{itemize}
 
