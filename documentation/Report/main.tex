@@ -20,6 +20,8 @@
 \usepackage{thmtools}
 \theoremstyle{definition}
 \newtheorem{definition}{Definicja}
+\theoremstyle{plain}
+\newtheorem{theorem}{Twierdzenie}
 \begin{document}
 
 \title{
@@ -494,34 +496,42 @@ Algorytm:
 \subsubsection{Pseudokod algorytmu}
 \label{subsubsec:pseudokod}
 
+Algorytm został podzielony na dwie części dla lepszej czytelności: Fazę 1 (generowanie osadzeń i obliczanie brakujących krawędzi) oraz Fazę 2 (znajdowanie minimalnego rozszerzenia dla $m$ kopii).
+
 \begin{algorithm}[H]
-\caption{MinimalGraphExtension(G, P, m)}
-\label{alg:minimal_extension}
+\caption{MinimalGraphExtension - Faza 1: Generowanie osadzeń}
+\label{alg:minimal_extension_phase1}
 \begin{algorithmic}[1]
 \Require $G = (V_G, E_G)$ - multigraf "duży", $|V_G| = n$
 \Require $P = (V_P, E_P)$ - multigraf "mały", $|V_P| = k$
-\Require $m$ - liczba wymaganych kopii P
-\Ensure Lista krawędzi do dodania do $G$
-\State \textit{// Faza 1: Generowanie osadzeń}
+\Ensure Macierz $missingEdgesMatrix$ z brakującymi krawędziami dla każdego osadzenia
+\State
+\State \textit{// Generowanie wszystkich k-kombinacji wierzchołków G}
 \State $combinations \gets \text{GenerateCombinations}(V_G, k)$
 \State $indexToSubset \gets \text{IndexMap}(combinations)$
+\State
+\State \textit{// Generowanie wszystkich permutacji wierzchołków P}
 \State $permutations \gets \text{GeneratePermutations}(V_P)$
 \State $indexToPermutation \gets \text{IndexMap}(permutations)$
 \State
+\State \textit{// Inicjalizacja macierzy brakujących krawędzi}
 \State $missingEdgesMatrix \gets \text{Array}[|indexToPermutation|][|indexToSubset|]$
 \State
+\State \textit{// Obliczanie brakujących krawędzi dla każdej pary (permutacja, kombinacja)}
 \For{$i \gets 0$ \textbf{to} $|indexToPermutation| - 1$}
     \For{$j \gets 0$ \textbf{to} $|indexToSubset| - 1$}
-        \State $\pi \gets indexToPermutation[i]$
-        \State $C \gets indexToSubset[j]$
+        \State $\pi \gets indexToPermutation[i]$ \Comment{Permutacja P}
+        \State $C \gets indexToSubset[j]$ \Comment{Kombinacja wierzchołków G}
         \State $missingEdgesMatrix[i][j] \gets [\,]$
+        \State
         \For{$u \gets 0$ \textbf{to} $k-1$}
             \For{$v \gets 0$ \textbf{to} $k-1$}
-                \State $u' \gets C[\pi[u]]$
-                \State $v' \gets C[\pi[v]]$
-                \State $e_P \gets A_P[\pi[u]][\pi[v]]$
-                \State $e_G \gets A_G[u'][v']$
-                \State $\Delta \gets \max(0, e_P - e_G)$
+                \State $u' \gets C[\pi[u]]$ \Comment{Mapowanie wierzchołka u}
+                \State $v' \gets C[\pi[v]]$ \Comment{Mapowanie wierzchołka v}
+                \State $e_P \gets A_P[\pi[u]][\pi[v]]$ \Comment{Krawędzie w P}
+                \State $e_G \gets A_G[u'][v']$ \Comment{Krawędzie w G}
+                \State $\Delta \gets \max(0, e_P - e_G)$ \Comment{Brakujące krawędzie}
+                \State
                 \For{$t \gets 0$ \textbf{to} $\Delta - 1$}
                     \State $missingEdgesMatrix[i][j].\text{append}((u', v'))$
                 \EndFor
@@ -530,30 +540,54 @@ Algorytm:
     \EndFor
 \EndFor
 \State
-\State \textit{// Faza 2: Znajdowanie minimalnego rozszerzenia}
+\State \Return $missingEdgesMatrix$, $indexToSubset$, $indexToPermutation$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{MinimalGraphExtension - Faza 2: Znajdowanie minimalnego rozszerzenia}
+\label{alg:minimal_extension_phase2}
+\begin{algorithmic}[1]
+\Require $missingEdgesMatrix$ - macierz z Fazy 1
+\Require $indexToSubset$ - mapowanie indeksów na kombinacje
+\Require $indexToPermutation$ - mapowanie indeksów na permutacje
+\Require $m$ - liczba wymaganych kopii P
+\Ensure Lista krawędzi do dodania do $G$
+\State
+\State \textit{// Generowanie m-kombinacji podzbiorów (dla m kopii)}
 \State $mCombinations \gets \text{GenerateCombinations}(indexToSubset.keys, m)$
 \State $minimalEdges \gets \text{null}$
 \State $minimalSize \gets \infty$
 \State
+\State \textit{// Przeszukiwanie wszystkich możliwych osadzeń m kopii}
 \For{\textbf{each} $\{j_1, \ldots, j_m\}$ \textbf{in} $mCombinations$}
     \For{\textbf{each} $(i_1, \ldots, i_m)$ \textbf{in} $\text{ProductSeq}(indexToPermutation.keys, m)$}
-        \State $edgeFreqMap \gets \{\}$
+        \State $edgeFreqMap \gets \{\}$ \Comment{Mapa: krawędź $\to$ maksymalna krotność}
+        \State
+        \State \textit{// Dla każdej z m kopii}
         \For{$t \gets 0$ \textbf{to} $m-1$}
             \State $missingEdges \gets missingEdgesMatrix[i_t][j_t]$
-            \State $localFreq \gets \{\}$
+            \State $localFreq \gets \{\}$ \Comment{Częstość krawędzi dla kopii t}
+            \State
             \For{\textbf{each} $e$ \textbf{in} $missingEdges$}
                 \State $localFreq[e] \gets localFreq[e] + 1$
             \EndFor
+            \State
+            \State \textit{// Aktualizacja globalnej mapy: bierzemy maksimum}
             \For{\textbf{each} $(e, freq)$ \textbf{in} $localFreq$}
                 \State $edgeFreqMap[e] \gets \max(edgeFreqMap[e], freq)$
             \EndFor
         \EndFor
+        \State
+        \State \textit{// Konwersja mapy częstości na listę krawędzi}
         \State $addedEdges \gets [\,]$
         \For{\textbf{each} $(e, freq)$ \textbf{in} $edgeFreqMap$}
             \For{$t \gets 0$ \textbf{to} $freq - 1$}
                 \State $addedEdges.\text{append}(e)$
             \EndFor
         \EndFor
+        \State
+        \State \textit{// Aktualizacja minimum}
         \If{$|addedEdges| < minimalSize$}
             \State $minimalSize \gets |addedEdges|$
             \State $minimalEdges \gets addedEdges$
