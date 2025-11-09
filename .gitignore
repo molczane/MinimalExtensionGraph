@@ -30,3 +30,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+/documentation/Report/compiled/main.aux
+/documentation/Report/compiled/main.log
+/documentation/Report/compiled/main.out
+/documentation/Report/compiled/main.synctex.gz
+/documentation/Report/compiled/main.toc
