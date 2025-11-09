@@ -6,13 +6,13 @@ import kotlin.math.max
 /** Example usage */
 fun main() {
   val (bigGraph, smallGraph)
-          = readTwoAdjacencyMatrices("/Users/ernestmolczan/IdeaProjects/MinimalExtensionGraph/src/sample_graphs5.txt")
+          = readTwoAdjacencyMatrices("/Users/ernestmolczan/IdeaProjects/MinimalExtensionGraph/src/sample_graphs6.txt")
 
   val n = bigGraph.size
   val bigGraphVertices = (0 until n).toList()
   val k = smallGraph.size
   val smallGraphVertices = (0 until k).toList()
-  val m = 2
+  val m = 3
 
   // Generate all k-combinations of bigGraph vertices
   val combinations = combinationsK(bigGraphVertices, k)
@@ -106,10 +106,10 @@ fun main() {
   }
 
   var minimalListOfAddedEdges: List<Pair<Int, Int>>? = null
-
+  val productSequences = productSequences(indexToPermutation.keys.toList(), m).toList()
   // Iterate over all m-sized combinations of subsets and all m-length sequences of permutations
   indexToMSizedCombination.forEach { mSizedCombinationOfSubsets ->
-    productSequences(indexToPermutation.keys.toList(), m).forEach { mLengthSequence ->
+    productSequences.forEach { mLengthSequence ->
       val subsetsNumbers = mSizedCombinationOfSubsets.value // columns in missingEdgesMatrix
       val permutationsNumbers = mLengthSequence // rows in missingEdgesMatrix
 

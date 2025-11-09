@@ -390,7 +390,7 @@ Algorytm oparty jest na pełnym przeszukiwaniu przestrzeni rozwiązań. Strategi
 \begin{enumerate}
     \item Wygenerowaniu wszystkich możliwych osadzeń grafu $P$ w grafie $G$
     \item Obliczeniu brakujących krawędzi dla każdego osadzenia
-    \item Rozważeniu wszystkich możliwych m-tuple osadzeń dla $m$ kopii
+    \item Rozważeniu wszystkich możliwych m-krotnych osadzeń dla $m$ kopii
     \item Wybraniu osadzenia minimalizującego liczbę dodanych krawędzi
 \end{enumerate}
 
@@ -718,19 +718,6 @@ T(n, k, m) = O\left(\binom{\binom{n}{k}}{m} \times (k!)^m \times m \times k^2\ri
     \item $(k!)^m$ - wykładnicze względem $m$
 \end{itemize}
 
-\textbf{Przykład obliczeniowy:}
-
-Dla $k = 3$, $n = 10$, $m = 2$:
-\begin{itemize}
-    \item $\binom{10}{3} = 120$
-    \item $3! = 6$
-    \item $\binom{120}{2} = 7140$
-    \item $(3!)^2 = 36$
-    \item Oszacowanie operacji Fazy 1: $120 \times 6 \times 9 \approx 6{,}480$
-    \item Oszacowanie operacji Fazy 2: $7140 \times 36 \times 2 \times 9 \approx 4{,}630{,}080$
-    \item Łącznie: $\approx 4{,}6$ miliona operacji
-\end{itemize}
-
 \subsubsection{Złożoność pamięciowa}
 \label{subsubsec:zlozonosc_pamieciowa}
 
@@ -779,143 +766,6 @@ S(n, k, m) = O\left(\binom{n}{k} \times k! \times k^2\right)
     \item Dla większych wartości $k$ lub $n$ algorytm staje się niepraktyczny
     \item Wartość $m$ ma mniejszy wpływ na czas wykonania niż $k$ (dla małych $m$)
 \end{itemize}
-
-\subsection{Przykład działania algorytmu}
-\label{subsec:przyklad_dzialania}
-
-\textbf{Dane wejściowe:}
-
-Graf $G$ z 8 wierzchołkami (macierz sąsiedztwa $8 \times 8$):
-\[
-A_G = \begin{pmatrix}
-2 & 1 & 1 & 0 & 0 & 0 & 0 & 1 \\
-1 & 2 & 1 & 0 & 0 & 0 & 0 & 0 \\
-1 & 1 & 2 & 1 & 0 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 1 & 0 & 0 & 0 \\
-0 & 0 & 0 & 1 & 0 & 1 & 0 & 0 \\
-0 & 0 & 0 & 0 & 1 & 0 & 1 & 0 \\
-0 & 0 & 0 & 0 & 0 & 1 & 0 & 1 \\
-1 & 0 & 0 & 0 & 0 & 0 & 1 & 0
-\end{pmatrix}
-\]
-
-Graf $P$ z 3 wierzchołkami (macierz sąsiedztwa $3 \times 3$):
-\[
-A_P = \begin{pmatrix}
-2 & 1 & 1 \\
-1 & 2 & 1 \\
-1 & 1 & 2
-\end{pmatrix}
-\]
-
-Liczba wymaganych kopii: $m = 2$
-
-\textbf{Faza 1: Generowanie osadzeń}
-
-\textbf{Krok 1:} Generowanie 3-kombinacji z 8 wierzchołków
-\begin{itemize}
-    \item Liczba kombinacji: $\binom{8}{3} = 56$
-    \item Przykłady: $C_0 = \{0, 1, 2\}$, $C_1 = \{0, 1, 3\}$, \ldots, $C_{55} = \{5, 6, 7\}$
-\end{itemize}
-
-\textbf{Krok 2:} Generowanie permutacji wierzchołków $P$
-\begin{itemize}
-    \item Liczba permutacji: $3! = 6$
-    \item Wszystkie permutacje: $\pi_0 = [0, 1, 2]$, $\pi_1 = [0, 2, 1]$, $\pi_2 = [1, 0, 2]$, \\
-    $\pi_3 = [1, 2, 0]$, $\pi_4 = [2, 0, 1]$, $\pi_5 = [2, 1, 0]$
-\end{itemize}
-
-\textbf{Krok 3:} Obliczanie brakujących krawędzi
-
-Dla $C_0 = \{0, 1, 2\}$ i $\pi_0 = [0, 1, 2]$:
-\begin{itemize}
-    \item Podgraf $G$ indukowany przez $\{0, 1, 2\}$:
-    \[
-    \begin{pmatrix}
-    2 & 1 & 1 \\
-    1 & 2 & 1 \\
-    1 & 1 & 2
-    \end{pmatrix}
-    \]
-    \item $P$ z permutacją $\pi_0$ (bez zmian):
-    \[
-    \begin{pmatrix}
-    2 & 1 & 1 \\
-    1 & 2 & 1 \\
-    1 & 1 & 2
-    \end{pmatrix}
-    \]
-    \item Brakujące krawędzie: $\text{missingEdgesMatrix}[0][0] = [\,]$ (puste - grafy identyczne!)
-\end{itemize}
-
-Dla $C_{55} = \{5, 6, 7\}$ i $\pi_0 = [0, 1, 2]$:
-\begin{itemize}
-    \item Podgraf $G$ indukowany przez $\{5, 6, 7\}$:
-    \[
-    \begin{pmatrix}
-    0 & 1 & 0 \\
-    1 & 0 & 1 \\
-    0 & 1 & 0
-    \end{pmatrix}
-    \]
-    \item Brakujące krawędzie: $\text{missingEdgesMatrix}[0][55] = [(5,5), (5,5), (5,7), (6,6), (6,6), (7,5), (7,7), (7,7)]$
-\end{itemize}
-
-\textbf{Faza 2: Znajdowanie 2 kopii}
-
-\textbf{Krok 4-6:} Rozważamy 2-kombinację $\{C_0, C_{55}\} = \{\{0,1,2\}, \{5,6,7\}\}$
-
-Te kombinacje są różne (różnią się wszystkimi wierzchołkami) $\checkmark$
-
-Dla 2-krotki permutacji $(\pi_0, \pi_0)$:
-\begin{itemize}
-    \item Kopia 1: $\text{missingEdgesMatrix}[0][0] = [\,]$ (0 krawędzi)
-    \item Kopia 2: $\text{missingEdgesMatrix}[0][55] = [\ldots]$ (8 krawędzi)
-    \item $\text{edgeFrequencyMap}$ zawiera 8 krawędzi z Kopii 2
-    \item Rozmiar listy: 8
-\end{itemize}
-
-Po przeszukaniu wszystkich konfiguracji, algorytm może znaleźć lepsze rozwiązanie (np. dwie inne kombinacje wymagające łącznie mniej krawędzi).
-
-\textbf{Wynik przykładowy:}
-\begin{verbatim}
-Minimalna liczba krawędzi do dodania: 0 (lub inna wartość)
-Dodane krawędzie: []
-Osadzenie kopii 1: wierzchołki {0,1,2}
-Osadzenie kopii 2: wierzchołki {5,6,7} (po ewentualnym dodaniu krawędzi)
-\end{verbatim}
-
-\subsection{Optymalizacje i możliwe ulepszenia}
-\label{subsec:optymalizacje}
-
-\subsubsection{Optymalizacje implementacyjne}
-\label{subsubsec:optymalizacje_impl}
-
-\begin{enumerate}
-    \item \textbf{Wczesne przerywanie (pruning)}
-    \begin{itemize}
-        \item Jeśli podczas budowania $addedEdgesList$ rozmiar przekroczy dotychczasowe minimum, przerwij obliczenia dla tej konfiguracji
-        \item Oszczędność czasu w pesymistycznych przypadkach
-    \end{itemize}
-
-    \item \textbf{Wykorzystanie symetrii grafu}
-    \begin{itemize}
-        \item Jeśli graf $P$ ma symetrie (automorfizmy), wiele permutacji da identyczne wyniki
-        \item Można zredukować liczbę rozważanych permutacji poprzez grupowanie klas równoważności
-    \end{itemize}
-
-    \item \textbf{Sortowanie kombinacji według "obiecujących" cech}
-    \begin{itemize}
-        \item Najpierw rozważaj kombinacje, które już mają wiele krawędzi odpowiadających $P$
-        \item Może prowadzić do znalezienia dobrego rozwiązania wcześniej
-    \end{itemize}
-
-    \item \textbf{Przetwarzanie równoległe}
-    \begin{itemize}
-        \item Obliczenia dla różnych $m$-kombinacji są niezależne
-        \item Możliwość równoległego przetwarzania na wielu rdzeniach/maszynach
-    \end{itemize}
-\end{enumerate}
 
 \subsubsection{Heurystyki i algorytmy aproksymacyjne}
 \label{subsubsec:heurystyki}
